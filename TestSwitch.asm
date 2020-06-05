@@ -17,27 +17,34 @@ DATA ENDS
 CODE SEGMENT
 ASSUME CS:CODE,DS:DATA
 START:
-
+        MOV BX, DATA
+        MOV DS, BX
     again:
-        MOV DX, msg
+        LEA DX, msg
         MOV AH, 9       ; 9号系统调用,从DX取数据并输出
         INT 21H
 
+        XOR AX, AX      ; 清空AX,不然后面乘4低位会出现错误
         MOV AH, 01H     ; 1号系统调用,将字符输入到AL中
         INT 21H
+        ;MOVZX AX, AL
+        SUB AX, 100H    ; 系统调用会在AX上加100h
+        SUB AX, 30H     ; ascll码，减30h变裸数字
         CMP AL, 1
+        ;SUB AL, 30H     ; ASCLL码,减去30
         JB  again
         CMP AL, 7
         JA  again       ; 不在范围内重新输入
         
         DEC AL
         MOV AX, AL
-        MUL AX, 4       ; 相当于乘4, 左移也可
-        ;JMP near ptr [table[AX] ; 跳转到相应的的label
-        ;MUL AL, 4
-        ;MOV AX, dword ptr [table[AL]]
-        jmp dword ptr table[AX]
-
+        MOV AH, 0
+        ;MUL AX, 4       ; 相当于乘4, 左移也可
+        SHL AX, 1
+        ;SHL AX, 1       ; 这里有一点疑惑，我label定义的是dw，可是乘4就会出现错误
+        MOV BX, AX
+        ;jmp dword ptr table[AX] ; 16位dos环境中，AX不能用作偏移地址
+        JMP WORD PTR TABLE[BX]
     disp1:
         MOV AX, OFFSET msg1
         jmp disp
@@ -63,6 +70,8 @@ START:
         MOV DX, AX
         MOV AH, 9
         INT 21H
-
+        
+        MOV AH, 4CH
+        INT 21H         ;控制权返回给终端
 CODE ENDS
 END START
